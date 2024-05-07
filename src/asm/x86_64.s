@@ -24,3 +24,8 @@ movq 16(%rdi), %rbp
 movq  8(%rdi), %rsp
 
 jmp *(%rdi)
+
+switch_to_new_co:
+# the first arg in %rdi is passed as is 
+movq %rdx, %rsp
+jmp *%rsi

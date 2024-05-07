@@ -82,20 +82,6 @@ const Co = struct {
 
         unreachable;
     }
-
-    pub inline fn switchToNewCo(self: *Co) noreturn {
-        asm volatile (
-            \\movq %[sp], %%rsp
-            \\movq %[arg], %%rdi
-            \\jmp *%[entry]
-            :
-            : [sp] "r" (&self.stack[self.stack.len - arch_info.alignment]),
-              [entry] "r" (&funcWrapper),
-              [arg] "r" (self),
-            : "memory"
-        );
-        unreachable;
-    }
 };
 
 var current: *Co = undefined;
@@ -120,6 +106,7 @@ pub export fn co_start(name: [*c]const u8, func: CoFunc, arg: CoArg) CoPtr {
 
 extern fn save_context(context: *arch_info.ContextType) callconv(.C) void;
 extern fn restore_context(context: *arch_info.ContextType) noreturn;
+extern fn switch_to_new_co(arg: *Co, func: *const fn (*Co) callconv(.C) noreturn, stack: *u8) noreturn;
 
 pub export fn co_yield() void {
     save_context(&current.context);
@@ -136,9 +123,9 @@ fn yield() void {
         switch (next_co.status) {
             .New => {
                 current = next_co;
-
                 next_co.status = .Running;
-                next_co.switchToNewCo();
+
+                switch_to_new_co(next_co, &Co.funcWrapper, &next_co.stack[next_co.stack.len - arch_info.alignment]);
             },
             .Running => {
                 current = next_co;
