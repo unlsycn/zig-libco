@@ -13,6 +13,7 @@ const ArchInfo = struct {
     ContextType: type,
     assembly: []const u8,
     stack_size: usize,
+    alignment: usize,
 };
 
 const arch_info = switch (builtin.cpu.arch) {
@@ -29,6 +30,7 @@ const arch_info = switch (builtin.cpu.arch) {
         },
         .assembly = @embedFile("asm/x86_64.s"),
         .stack_size = 64 * 1024, // 64 KiB
+        .alignment = 8,
     },
     else => @compileError("Unsupport arch"),
 };
@@ -48,7 +50,7 @@ const Co = struct {
     status: CoStatus,
     waiter: ?*Co,
     context: arch_info.ContextType,
-    stack: [arch_info.stack_size]u8,
+    stack: [arch_info.stack_size + arch_info.alignment]u8 align(arch_info.alignment),
 
     pub fn init(allocator: Allocator, name: []const u8, func: CoFunc, arg: CoArg) !*Co {
         const co = try allocator.create(Co);
@@ -87,7 +89,7 @@ const Co = struct {
             \\movq %[arg], %%rdi
             \\jmp *%[entry]
             :
-            : [sp] "r" (&self.stack[self.stack.len - 1]),
+            : [sp] "r" (&self.stack[self.stack.len - arch_info.alignment]),
               [entry] "r" (&funcWrapper),
               [arg] "r" (self),
             : "memory"
