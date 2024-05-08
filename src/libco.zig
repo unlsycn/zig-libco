@@ -143,19 +143,17 @@ pub export fn co_wait(co_ptr: ?CoPtr) void {
     if (co_ptr == null) return;
 
     const co: *Co = @ptrCast(@alignCast(co_ptr));
+    defer if (co.status == .Dead) {
+        // We assume that each coroutine will be waited exactly once,
+        // hence we should free it in co_wait to avoid use-after-free
+        co.deinit();
+    };
 
     co.waiter = current;
     current.status = .Waiting;
 
     while (co.status != .Dead) {
         co_yield();
-
-        // We assume that each coroutine will be waited exactly once,
-        // hence we should free it in co_wait to avoid use-after-free
-        if (co.status == .Dead) {
-            co.deinit();
-            return;
-        }
     }
 }
 
