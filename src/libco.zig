@@ -7,7 +7,7 @@ const CoFunc = ?*const fn (CoArg) callconv(.C) void;
 
 // use ?*anyopaque instead of [*c]Co here
 // since the C code doesn't need to know the exact type of Co
-const CoPtr = ?*anyopaque;
+const CoPtr = *anyopaque;
 
 const ArchInfo = struct {
     ContextType: type,
@@ -62,8 +62,6 @@ const Co = struct {
         co.status = .New;
         co.waiter = null;
 
-        @memset(&co.stack, 0xdb);
-
         return co;
     }
 
@@ -72,7 +70,8 @@ const Co = struct {
     }
 
     fn funcWrapper(self: *Co) callconv(.C) noreturn {
-        self.func.?(self.arg.?);
+        if (self.func) |func|
+            func(self.arg);
 
         // at this moment we cannot guarantee that the coroutine has been waited,
         // thus we set the status to Dead and destroy it until the only co_wait
@@ -140,7 +139,9 @@ fn yield() void {
     }
 }
 
-pub export fn co_wait(co_ptr: CoPtr) void {
+pub export fn co_wait(co_ptr: ?CoPtr) void {
+    if (co_ptr == null) return;
+
     const co: *Co = @ptrCast(@alignCast(co_ptr));
 
     co.waiter = current;
