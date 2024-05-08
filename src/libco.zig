@@ -18,15 +18,9 @@ const ArchInfo = struct {
 
 const arch_info = switch (builtin.cpu.arch) {
     .x86_64 => .{
-        .ContextType = packed struct {
+        .ContextType = extern struct {
             return_address: u64,
-            rsp: u64,
-            rbp: u64,
-            rbx: u64,
-            r12: u64,
-            r13: u64,
-            r14: u64,
-            r15: u64,
+            regs: [7]u64,
         },
         .assembly = @embedFile("asm/x86_64.s"),
         .stack_size = 64 * 1024, // 64 KiB
