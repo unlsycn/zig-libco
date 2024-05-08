@@ -182,3 +182,20 @@ test "init and deinit" {
     co_init();
     defer co_deinit();
 }
+
+fn work(arg: CoArg) void {
+    for (0..100) |_| {
+        _ = arg;
+        co_yield();
+    }
+}
+
+test "yield" {
+    co_init();
+    defer co_deinit();
+
+    const work1: *Co = @ptrCast(@alignCast(co_start("work-1", @ptrCast(&work), null)));
+    const work2: *Co = @ptrCast(@alignCast(co_start("work-2", @ptrCast(&work), null)));
+    co_wait(work1);
+    co_wait(work2);
+}
