@@ -193,3 +193,10 @@ test "yield" {
     co_wait(work1);
     co_wait(work2);
 }
+
+test "context struct" {
+    try std.testing.expectEqual(switch (builtin.cpu.arch) {
+        .x86_64 => 8 * @sizeOf(u64),
+        else => unreachable,
+    }, @sizeOf(arch_info.ContextType));
+}
