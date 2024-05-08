@@ -26,6 +26,15 @@ const arch_info = switch (builtin.cpu.arch) {
         .stack_size = 64 * 1024, // 64 KiB
         .alignment = 8,
     },
+    .riscv64 => .{
+        .ContextType = extern struct {
+            return_address: u64,
+            regs: [13]u64,
+        },
+        .assembly = @embedFile("asm/riscv64.S"),
+        .stack_size = 64 * 1024,
+        .alignment = 8,
+    },
     else => @compileError("Unsupport arch"),
 };
 
@@ -197,6 +206,7 @@ test "yield" {
 test "context struct" {
     try std.testing.expectEqual(switch (builtin.cpu.arch) {
         .x86_64 => 8 * @sizeOf(u64),
+        .riscv64 => 14 * @sizeOf(u64),
         else => unreachable,
     }, @sizeOf(arch_info.ContextType));
 }
